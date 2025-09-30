@@ -1,5 +1,5 @@
 // Copyright (c) 2025 Occala
-// Licensed under the MIT License. See LICENSE file in the project root for full license information.
+// Licensed under the MIT License. See LICENSE file in the repo's root for full license information.
 
 https://github.com/Occala/Random-VRC-Scripts/
 
