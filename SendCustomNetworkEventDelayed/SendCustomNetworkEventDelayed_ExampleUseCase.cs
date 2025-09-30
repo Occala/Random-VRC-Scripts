@@ -21,6 +21,7 @@ namespace Occala.RandomVRCScripts
         public void _RepeatedSend()
         {
             float delay = Random.Range(1f, 2.5f);
+
             SendCustomNetworkEventDelayed_Manager.NetworkEventDelayedSeconds(
                 this,
                 VRC.Udon.Common.Interfaces.NetworkEventTarget.All, nameof(ExampleNetworkEvent),
