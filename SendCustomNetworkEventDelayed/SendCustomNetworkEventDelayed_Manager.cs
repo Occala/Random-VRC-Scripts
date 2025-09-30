@@ -23,9 +23,6 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
     /// </summary>
     private void OnValidate()
     {
-        if (!this.enabled)
-            this.enabled = true;
-
         if (!gameObject.activeSelf)
             gameObject.SetActive(true);
 
