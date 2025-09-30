@@ -1,3 +1,6 @@
+Install:
+Place the prefab in your scene somewhere, don't rename it
+
 Calling this is a bit verbose, a typical call from some script would be as follows:
 
 SendCustomNetworkEventDelayed_Manager.NetworkEventDelayedSeconds(
