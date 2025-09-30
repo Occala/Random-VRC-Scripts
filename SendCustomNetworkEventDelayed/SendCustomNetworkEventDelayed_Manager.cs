@@ -18,6 +18,15 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
     [System.NonSerialized] public readonly DataList queuedEventsListDelayedSeconds_FiringTimes = new DataList();
     [System.NonSerialized] public readonly DataList queuedEventsListDelayedSeconds_EventData = new DataList();
 
+    /// <summary>
+    /// Safety checks name in editor
+    /// </summary>
+    private void OnValidate()
+    {
+        if (this.name == nameof(SendCustomNetworkEventDelayed_Manager)) return;
+        this.name = nameof(SendCustomNetworkEventDelayed_Manager);
+    }
+
     public static void NetworkEventDelayedFrames(
         UdonSharpBehaviour scriptInstance, int delayFrames,
         VRC.Udon.Common.Interfaces.NetworkEventTarget target, string eventName,
