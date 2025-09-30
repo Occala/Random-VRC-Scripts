@@ -219,7 +219,12 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
     {
         int readIndex = 0;
 
-        // This could break if the script instance is deleted locally, don't do that (you shouldn't be doing that on a networked object anyway)
+        // Safety check the script instance still existing
+        // This could potentially happen in normal use if someone targeted another player's PlayerObject with an event on it
+        DataToken scriptInstanceToken = eventData[readIndex];
+        if (scriptInstanceToken.TokenType != TokenType.Reference) return; // This probably doesn't happen
+        if (!Utilities.IsValid(eventData[readIndex].Reference)) return; // This happens if it becomes null
+
         UdonSharpBehaviour scriptInstance = (UdonSharpBehaviour)eventData[readIndex].Reference;
         readIndex++;
 
