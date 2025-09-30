@@ -78,7 +78,7 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
         // Fire immediately if delay is negative or zero
         if (delayFrames <= 0)
         {
-            managerScript.FireEventDelayedSeconds(eventEntry);
+            managerScript.FireQueuedEvent(eventEntry);
         }
 
         // Add firing time to list
@@ -149,7 +149,7 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
         // Fire immediately if delay is negative or zero
         if (delaySeconds <= 0.0f)
         {
-            managerScript.FireEventDelayedSeconds(eventEntry);
+            managerScript.FireQueuedEvent(eventEntry);
         }
 
         // Add firing time to list
@@ -174,7 +174,7 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
             if (frameNow < queuedEventsListDelayedFrames_FiringTimes[i].Int)
                 continue;
 
-            FireEventDelayedSeconds(queuedEventsListDelayedFrames_EventData[i].DataList);
+            FireQueuedEvent(queuedEventsListDelayedFrames_EventData[i].DataList);
 
             queuedEventsListDelayedFrames_FiringTimes.RemoveAt(i);
             queuedEventsListDelayedFrames_EventData.RemoveAt(i);
@@ -188,7 +188,7 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
             if (timeNow < queuedEventsListDelayedSeconds_FiringTimes[i].Double)
                 continue;
 
-            FireEventDelayedSeconds(queuedEventsListDelayedSeconds_EventData[i].DataList);
+            FireQueuedEvent(queuedEventsListDelayedSeconds_EventData[i].DataList);
 
             queuedEventsListDelayedSeconds_FiringTimes.RemoveAt(i);
             queuedEventsListDelayedSeconds_EventData.RemoveAt(i);
@@ -202,7 +202,7 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
         }
     }
 
-    private void FireEventDelayedSeconds(DataList eventData)
+    private void FireQueuedEvent(DataList eventData)
     {
         int readIndex = 0;
 
