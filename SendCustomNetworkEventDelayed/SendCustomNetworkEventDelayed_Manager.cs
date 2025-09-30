@@ -19,12 +19,18 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
     [System.NonSerialized] public readonly DataList queuedEventsListDelayedSeconds_EventData = new DataList();
 
     /// <summary>
-    /// Safety checks name in editor
+    /// Safety checks in editor
     /// </summary>
     private void OnValidate()
     {
-        if (this.name == nameof(SendCustomNetworkEventDelayed_Manager)) return;
-        this.name = nameof(SendCustomNetworkEventDelayed_Manager);
+        if (!this.enabled)
+            this.enabled = true;
+
+        if (!gameObject.activeSelf)
+            gameObject.SetActive(true);
+
+        if (this.name != nameof(SendCustomNetworkEventDelayed_Manager))
+            this.name = nameof(SendCustomNetworkEventDelayed_Manager);
     }
 
     public static void NetworkEventDelayedFrames(
