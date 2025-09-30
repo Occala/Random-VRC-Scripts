@@ -90,6 +90,7 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
         if (delayFrames <= 0)
         {
             managerScript.FireQueuedEvent(eventEntry);
+            return;
         }
 
         // Add firing time to list
@@ -160,6 +161,7 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
         if (delaySeconds <= 0.0f)
         {
             managerScript.FireQueuedEvent(eventEntry);
+            return;
         }
 
         // Add firing time to list
