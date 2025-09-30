@@ -57,8 +57,7 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
         int parameterCount = 0;
         for (int i = 0; i < parameters.Length; i++)
         {
-            object parameter = parameters[i];
-            if (parameter == null)
+            if (parameters[i] == null)
                 break;
 
             parameterCount++;
