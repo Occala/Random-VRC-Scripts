@@ -12,8 +12,82 @@ using VRC.SDK3.Data;
 [DefaultExecutionOrder(int.MinValue + 1_000_000)] // Earliest possible
 public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
 {
+    [System.NonSerialized] public readonly DataList queuedEventsListDelayedFrames_FiringTimes = new DataList();
+    [System.NonSerialized] public readonly DataList queuedEventsListDelayedFrames_EventData = new DataList();
+
     [System.NonSerialized] public readonly DataList queuedEventsListDelayedSeconds_FiringTimes = new DataList();
     [System.NonSerialized] public readonly DataList queuedEventsListDelayedSeconds_EventData = new DataList();
+
+    public static void NetworkEventDelayedFrames(
+        UdonSharpBehaviour scriptInstance,
+        VRC.Udon.Common.Interfaces.NetworkEventTarget target, string eventName,
+        int delayFrames = 0,
+        object parameter0 = null, object parameter1 = null, object parameter2 = null, object parameter3 = null,
+        object parameter4 = null, object parameter5 = null, object parameter6 = null, object parameter7 = null
+        )
+    {
+        // Sad scene find method until static/singleton patterns are allowed
+        GameObject manager = GameObject.Find(nameof(SendCustomNetworkEventDelayed_Manager));
+        if (!Utilities.IsValid(manager))
+        {
+            Debug.LogError($"[{nameof(NetworkEventDelayedSeconds)}] Couldn't find manager! " +
+                $"Does your scene not include it or was it renamed? " +
+                $"It should be named {nameof(SendCustomNetworkEventDelayed_Manager)}");
+
+            return;
+        }
+        SendCustomNetworkEventDelayed_Manager managerScript = manager.GetComponent<SendCustomNetworkEventDelayed_Manager>();
+        if (!Utilities.IsValid(managerScript))
+        {
+            Debug.LogError($"[{nameof(NetworkEventDelayedSeconds)}] Found manager, but it has no accompanying script? " +
+                $"[{nameof(SendCustomNetworkEventDelayed_Manager)}]");
+
+            return;
+        }
+
+        object[] parameters = new object[]
+        {
+                parameter0, parameter1, parameter2, parameter3,
+                parameter4, parameter5, parameter6, parameter7
+        };
+
+        DataList eventEntry = new DataList();
+        eventEntry.Add(new DataToken(scriptInstance));
+        eventEntry.Add(new DataToken(target));
+        eventEntry.Add(new DataToken(eventName));
+
+        // First count the valid parameters
+        int parameterCount = 0;
+        for (int i = 0; i < parameters.Length; i++)
+        {
+            if (parameters[i] == null)
+                break;
+
+            parameterCount++;
+        }
+
+        // Store the parameter count
+        eventEntry.Add(new DataToken(parameterCount));
+
+        // Add the valid parameters to the event data
+        for (int i = 0; i < parameterCount; i++)
+        {
+            eventEntry.Add(new DataToken(parameters[i]));
+        }
+
+        // Fire immediately if delay is negative or zero
+        if (delayFrames <= 0)
+        {
+            managerScript.FireEventDelayedSeconds(eventEntry);
+        }
+
+        // Add firing time to list
+        managerScript.queuedEventsListDelayedFrames_FiringTimes.Add(Time.frameCount + delayFrames);
+
+        // Add event data to list
+        managerScript.queuedEventsListDelayedFrames_EventData.Add(eventEntry);
+        managerScript.enabled = true;
+    }
 
     public static void NetworkEventDelayedSeconds(
         UdonSharpBehaviour scriptInstance,
@@ -92,6 +166,21 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
     /// </summary>
     private void Update()
     {
+        // Delayed frames events
+        int delayedFramesCount = queuedEventsListDelayedFrames_FiringTimes.Count;
+        int frameNow = Time.frameCount;
+        for (int i = delayedFramesCount - 1; i >= 0; i--)
+        {
+            if (frameNow < queuedEventsListDelayedFrames_FiringTimes[i].Int)
+                continue;
+
+            FireEventDelayedSeconds(queuedEventsListDelayedFrames_EventData[i].DataList);
+
+            queuedEventsListDelayedFrames_FiringTimes.RemoveAt(i);
+            queuedEventsListDelayedFrames_EventData.RemoveAt(i);
+        }
+
+        // Delayed seconds events
         int delayedSecondsCount = queuedEventsListDelayedSeconds_FiringTimes.Count;
         double timeNow = Time.timeAsDouble;
         for (int i = delayedSecondsCount - 1; i >= 0; i--)
@@ -105,7 +194,9 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
             queuedEventsListDelayedSeconds_EventData.RemoveAt(i);
         }
 
-        if (queuedEventsListDelayedSeconds_FiringTimes.Count == 0)
+        // Check if we can disable the update loop
+        bool hasRemainingEvents = queuedEventsListDelayedFrames_FiringTimes.Count > 0 || queuedEventsListDelayedSeconds_FiringTimes.Count > 0;
+        if (!hasRemainingEvents)
         {
             this.enabled = false;
         }
