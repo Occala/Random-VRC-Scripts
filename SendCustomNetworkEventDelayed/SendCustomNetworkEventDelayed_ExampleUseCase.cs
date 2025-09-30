@@ -23,9 +23,8 @@ namespace Occala.RandomVRCScripts
             float delay = Random.Range(1f, 2.5f);
 
             SendCustomNetworkEventDelayed_Manager.NetworkEventDelayedSeconds(
-                this,
+                this, delay,
                 VRC.Udon.Common.Interfaces.NetworkEventTarget.All, nameof(ExampleNetworkEvent),
-                delay,
                 Random.Range(int.MinValue, int.MaxValue), Random.Range(float.MinValue, float.MaxValue), "hello!"
                 );
 

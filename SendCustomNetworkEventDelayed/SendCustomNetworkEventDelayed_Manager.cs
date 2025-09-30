@@ -19,9 +19,8 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
     [System.NonSerialized] public readonly DataList queuedEventsListDelayedSeconds_EventData = new DataList();
 
     public static void NetworkEventDelayedFrames(
-        UdonSharpBehaviour scriptInstance,
+        UdonSharpBehaviour scriptInstance, int delayFrames,
         VRC.Udon.Common.Interfaces.NetworkEventTarget target, string eventName,
-        int delayFrames = 0,
         object parameter0 = null, object parameter1 = null, object parameter2 = null, object parameter3 = null,
         object parameter4 = null, object parameter5 = null, object parameter6 = null, object parameter7 = null
         )
@@ -90,9 +89,8 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
     }
 
     public static void NetworkEventDelayedSeconds(
-        UdonSharpBehaviour scriptInstance,
+        UdonSharpBehaviour scriptInstance, float delaySeconds,
         VRC.Udon.Common.Interfaces.NetworkEventTarget target, string eventName,
-        float delaySeconds = 0.0f,
         object parameter0 = null, object parameter1 = null, object parameter2 = null, object parameter3 = null,
         object parameter4 = null, object parameter5 = null, object parameter6 = null, object parameter7 = null
         )
