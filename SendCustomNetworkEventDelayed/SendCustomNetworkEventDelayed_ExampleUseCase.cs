@@ -1,10 +1,7 @@
-﻿// Copyright (c) 2025 Occala
-// Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
+using UnityEngine;
 
 using UdonSharp;
-using UnityEngine;
-using VRC.SDKBase;
-using VRC.Udon;
 using VRC.SDK3.UdonNetworkCalling;
 
 namespace Occala.RandomVRCScripts
@@ -13,8 +10,13 @@ namespace Occala.RandomVRCScripts
     [UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]
     public class SendCustomNetworkEventDelayed_ExampleUseCase : UdonSharpBehaviour
     {
+        private SendCustomNetworkEventDelayed_Manager _manager;
+        
         private void Start()
         {
+            // Cache the manager instance once for performance.
+            _manager = SendCustomNetworkEventDelayed_Manager.Instance;
+            // Start the repeated sending.
             SendCustomEventDelayedSeconds(nameof(_RepeatedSend), Random.Range(1f, 5f));
         }
 
@@ -22,7 +24,7 @@ namespace Occala.RandomVRCScripts
         {
             float delay = Random.Range(1f, 2.5f);
 
-            SendCustomNetworkEventDelayed_Manager.NetworkEventDelayedSeconds(
+            _manager.NetworkEventDelayedSeconds(
                 this, delay,
                 VRC.Udon.Common.Interfaces.NetworkEventTarget.All, nameof(ExampleNetworkEvent),
                 Random.Range(int.MinValue, int.MaxValue), Random.Range(float.MinValue, float.MaxValue), "hello!"
@@ -36,7 +38,5 @@ namespace Occala.RandomVRCScripts
         {
             Debug.Log($"[{nameof(ExampleNetworkEvent)}] Invoked - Parameters: {integer} | {single} | {stringValue}");
         }
-
     }
-
 }
