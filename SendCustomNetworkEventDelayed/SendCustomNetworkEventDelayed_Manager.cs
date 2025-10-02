@@ -24,6 +24,9 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
     /// </summary>
     private void OnValidate()
     {
+        if (this.name != nameof(SendCustomNetworkEventDelayed_Manager))
+            this.name = nameof(SendCustomNetworkEventDelayed_Manager);
+        
         if (gameObject.activeInHierarchy) return;
         
         if (!gameObject.activeSelf)
@@ -36,10 +39,34 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
     #endregion // VALIDATION
 
     /// <summary>
-    /// This is very expensive!! Use with caution! Please cache the result of this.
+    /// Sad scene find method until static/singleton patterns are allowed. Please cache the result of this.
     /// </summary>
     [PublicAPI]
-    public static SendCustomNetworkEventDelayed_Manager Instance => FindAnyObjectByType<SendCustomNetworkEventDelayed_Manager>(FindObjectsInactive.Include);
+    public static bool TryGetInstance(out SendCustomNetworkEventDelayed_Manager instance)
+    {
+        instance = null;
+        
+        GameObject manager = GameObject.Find(nameof(SendCustomNetworkEventDelayed_Manager));
+        if (!Utilities.IsValid(manager))
+        {
+            Debug.LogError($"[{nameof(NetworkEventDelayedSeconds)}] Couldn't find manager!\n" +
+                           "Does your scene not include it or was it renamed?\n" +
+                           $"It should be named {nameof(SendCustomNetworkEventDelayed_Manager)}");
+
+            return false;
+        }
+        
+        instance = manager.GetComponent<SendCustomNetworkEventDelayed_Manager>();
+        if (!Utilities.IsValid(instance))
+        {
+            Debug.LogError($"[{nameof(NetworkEventDelayedSeconds)}] Found manager, but it has no accompanying script?\n" +
+                           $"[{nameof(SendCustomNetworkEventDelayed_Manager)}]");
+
+            return false;
+        }
+
+        return true;
+    }
 
     #region DELAYED FRAMES API
     
@@ -55,9 +82,7 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
         object parameter4 = null, object parameter5 = null, object parameter6 = null, object parameter7 = null
         )
     {
-        var managerScript = Instance;
-        if (!Utilities.IsValid(managerScript)) { Debug.LogError("SendCustomNetworkEventDelayed_Manager was not found! "); return; }
-
+        if (!TryGetInstance(out var managerScript)) return;
         managerScript.NetworkEventDelayedFrames(scriptInstance, delayFrames, target, eventName, parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7);
     }
     
@@ -139,9 +164,7 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
         object parameter4 = null, object parameter5 = null, object parameter6 = null, object parameter7 = null
         )
     {
-        var managerScript = Instance;
-        if (!Utilities.IsValid(managerScript)) { Debug.LogError("SendCustomNetworkEventDelayed_Manager was not found! "); return; }
-
+        if (!TryGetInstance(out var managerScript)) return;
         managerScript.NetworkEventDelayedSeconds(scriptInstance, delaySeconds, target, eventName, parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7);
     }
     
