@@ -4,6 +4,8 @@ using UnityEngine;
 using UdonSharp;
 using VRC.SDK3.UdonNetworkCalling;
 
+using static SendCustomNetworkEventDelayed_Manager;
+
 namespace Occala.RandomVRCScripts
 {
     [AddComponentMenu("")]
@@ -14,8 +16,8 @@ namespace Occala.RandomVRCScripts
         
         private void Start()
         {
-            // Cache the manager instance once for performance.
-            _manager = SendCustomNetworkEventDelayed_Manager.Instance;
+            // Cache the manager instance once for performance
+            if (!TryGetInstance(out _manager)) return;
             // Start the repeated sending.
             SendCustomEventDelayedSeconds(nameof(_RepeatedSend), Random.Range(1f, 5f));
         }
