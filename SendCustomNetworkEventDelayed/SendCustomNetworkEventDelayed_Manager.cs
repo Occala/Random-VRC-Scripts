@@ -1,78 +1,100 @@
-﻿// Copyright (c) 2025 Occala
-// Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
+// Unsupported in U#
+// ReSharper disable ArrangeObjectCreationWhenTypeEvident
+
+using UnityEngine;
+using JetBrains.Annotations;
 
 using UdonSharp;
-using UnityEngine;
 using VRC.SDKBase;
-using VRC.Udon;
 using VRC.SDK3.Data;
 
+using NetworkEventTarget = VRC.Udon.Common.Interfaces.NetworkEventTarget;
+
+[SelectionBase]
 [AddComponentMenu("")]
 [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
-[DefaultExecutionOrder(int.MinValue + 1_000_000)] // Earliest possible
+[DefaultExecutionOrder(int.MinValue + 1_000_000)] // Earliest possible due to U#
 public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
 {
-    [System.NonSerialized] public readonly DataList queuedEventsListDelayedFrames_FiringTimes = new DataList();
-    [System.NonSerialized] public readonly DataList queuedEventsListDelayedFrames_EventData = new DataList();
-
-    [System.NonSerialized] public readonly DataList queuedEventsListDelayedSeconds_FiringTimes = new DataList();
-    [System.NonSerialized] public readonly DataList queuedEventsListDelayedSeconds_EventData = new DataList();
-
+    #region VALIDATION
+    
     /// <summary>
     /// Safety checks in editor
     /// </summary>
     private void OnValidate()
     {
+        if (gameObject.activeInHierarchy) return;
+        
         if (!gameObject.activeSelf)
             gameObject.SetActive(true);
-
-        if (this.name != nameof(SendCustomNetworkEventDelayed_Manager))
-            this.name = nameof(SendCustomNetworkEventDelayed_Manager);
+        
+        if (!gameObject.activeInHierarchy)
+            Debug.LogError("The SendCustomNetworkEventDelayed_Manager script is not active in hierarchy. Please make sure it is.");
     }
+    
+    #endregion // VALIDATION
 
-    public static void NetworkEventDelayedFrames(
+    /// <summary>
+    /// This is very expensive!! Use with caution! Please cache the result of this.
+    /// </summary>
+    [PublicAPI]
+    public static SendCustomNetworkEventDelayed_Manager Instance => FindAnyObjectByType<SendCustomNetworkEventDelayed_Manager>(FindObjectsInactive.Include);
+
+    #region DELAYED FRAMES API
+    
+    private readonly DataList _queuedEventFrames_Times = new DataList();
+    private readonly DataList _queuedEventFrames_Data = new DataList();
+    
+    /// <inheritdoc cref="NetworkEventDelayedFrames(UdonSharpBehaviour, int, NetworkEventTarget, string, object, object, object, object, object, object, object, object)"/>
+    [PublicAPI]
+    public static void NetworkEventDelayedFrames_Expensive(
         UdonSharpBehaviour scriptInstance, int delayFrames,
-        VRC.Udon.Common.Interfaces.NetworkEventTarget target, string eventName,
+        NetworkEventTarget target, string eventName,
         object parameter0 = null, object parameter1 = null, object parameter2 = null, object parameter3 = null,
         object parameter4 = null, object parameter5 = null, object parameter6 = null, object parameter7 = null
         )
     {
-        // Sad scene find method until static/singleton patterns are allowed
-        GameObject manager = GameObject.Find(nameof(SendCustomNetworkEventDelayed_Manager));
-        if (!Utilities.IsValid(manager))
-        {
-            Debug.LogError($"[{nameof(NetworkEventDelayedSeconds)}] Couldn't find manager! " +
-                $"Does your scene not include it or was it renamed? " +
-                $"It should be named {nameof(SendCustomNetworkEventDelayed_Manager)}");
+        var managerScript = Instance;
+        if (!Utilities.IsValid(managerScript)) { Debug.LogError("SendCustomNetworkEventDelayed_Manager was not found! "); return; }
 
-            return;
-        }
-        SendCustomNetworkEventDelayed_Manager managerScript = manager.GetComponent<SendCustomNetworkEventDelayed_Manager>();
-        if (!Utilities.IsValid(managerScript))
-        {
-            Debug.LogError($"[{nameof(NetworkEventDelayedSeconds)}] Found manager, but it has no accompanying script? " +
-                $"[{nameof(SendCustomNetworkEventDelayed_Manager)}]");
-
-            return;
-        }
-
+        managerScript.NetworkEventDelayedFrames(scriptInstance, delayFrames, target, eventName, parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7);
+    }
+    
+    /// <summary>
+    /// Sends a networked call after <paramref name="delayFrames"/> to the method with <paramref name="eventName"/> on the target UdonSharpBehaviour. The target method must be public and have five parameters.
+    /// <remarks>The method is allowed to return a value, but the return value will not be accessible via this method.
+    /// Methods with an underscore as their first character will not be callable via SendCustomNetworkEvent, unless they have a [NetworkCallable] attribute..</remarks>
+    /// </summary>
+    /// <param name="scriptInstance">The UdonSharpBehaviour that will have <paramref name="eventName"/> called on it</param>
+    /// <param name="delayFrames">How many frames to wait before sending the network event</param>
+    /// <param name="target">Whether to send this event to only the owner of the target behaviour's GameObject, or to everyone in the instance</param>
+    /// <param name="eventName">Name of the method to call</param>
+    [PublicAPI]
+    public void NetworkEventDelayedFrames(UdonSharpBehaviour scriptInstance, int delayFrames,
+        NetworkEventTarget target, string eventName,
+        // ReSharper disable InvalidXmlDocComment
+        object parameter0 = null, object parameter1 = null, object parameter2 = null, object parameter3 = null,
+        object parameter4 = null, object parameter5 = null, object parameter6 = null, object parameter7 = null
+        // ReSharper restore InvalidXmlDocComment
+    )
+    {
         object[] parameters = new object[]
         {
-                parameter0, parameter1, parameter2, parameter3,
-                parameter4, parameter5, parameter6, parameter7
+            parameter0, parameter1, parameter2, parameter3,
+            parameter4, parameter5, parameter6, parameter7
         };
 
-        DataList eventEntry = new DataList();
+        var eventEntry = new DataList();
         eventEntry.Add(new DataToken(scriptInstance));
         eventEntry.Add(new DataToken(target));
         eventEntry.Add(new DataToken(eventName));
 
         // First count the valid parameters
         int parameterCount = 0;
-        for (int i = 0; i < parameters.Length; i++)
+        foreach (object t in parameters)
         {
-            if (parameters[i] == null)
-                break;
+            if (t == null) break;
 
             parameterCount++;
         }
@@ -89,50 +111,64 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
         // Fire immediately if delay is negative or zero
         if (delayFrames <= 0)
         {
-            managerScript.FireQueuedEvent(eventEntry);
+            FireQueuedEvent(eventEntry);
             return;
         }
 
         // Add firing time to list
-        managerScript.queuedEventsListDelayedFrames_FiringTimes.Add(Time.frameCount + delayFrames);
+        _queuedEventFrames_Times.Add(Time.frameCount + delayFrames);
 
         // Add event data to list
-        managerScript.queuedEventsListDelayedFrames_EventData.Add(eventEntry);
-        managerScript.enabled = true;
+        _queuedEventFrames_Data.Add(eventEntry);
+        enabled = true;
     }
+    
+    #endregion // DELAYED FRAMES API
 
-    public static void NetworkEventDelayedSeconds(
+    #region DELAYED SECONDS API
+    
+    private readonly DataList _queuedEventSeconds_Times = new DataList();
+    private readonly DataList _queuedEventSeconds_Data = new DataList();
+    
+    /// <inheritdoc cref="NetworkEventDelayedSeconds(UdonSharpBehaviour, float, NetworkEventTarget, string, object, object, object, object, object, object, object, object)"/>
+    [PublicAPI]
+    public static void NetworkEventDelayedSeconds_Expensive(
         UdonSharpBehaviour scriptInstance, float delaySeconds,
-        VRC.Udon.Common.Interfaces.NetworkEventTarget target, string eventName,
+        NetworkEventTarget target, string eventName,
         object parameter0 = null, object parameter1 = null, object parameter2 = null, object parameter3 = null,
         object parameter4 = null, object parameter5 = null, object parameter6 = null, object parameter7 = null
         )
     {
-        // Sad scene find method until static/singleton patterns are allowed
-        GameObject manager = GameObject.Find(nameof(SendCustomNetworkEventDelayed_Manager));
-        if (!Utilities.IsValid(manager))
-        {
-            Debug.LogError($"[{nameof(NetworkEventDelayedSeconds)}] Couldn't find manager! " +
-                $"Does your scene not include it or was it renamed? " +
-                $"It should be named {nameof(SendCustomNetworkEventDelayed_Manager)}");
+        var managerScript = Instance;
+        if (!Utilities.IsValid(managerScript)) { Debug.LogError("SendCustomNetworkEventDelayed_Manager was not found! "); return; }
 
-            return;
-        }
-        SendCustomNetworkEventDelayed_Manager managerScript = manager.GetComponent<SendCustomNetworkEventDelayed_Manager>();
-        if (!Utilities.IsValid(managerScript))
-        {
-            Debug.LogError($"[{nameof(NetworkEventDelayedSeconds)}] Found manager, but it has no accompanying script? " +
-                $"[{nameof(SendCustomNetworkEventDelayed_Manager)}]");
-
-            return;
-        }
-
+        managerScript.NetworkEventDelayedSeconds(scriptInstance, delaySeconds, target, eventName, parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7);
+    }
+    
+    /// <summary>
+    /// Sends a networked call after <paramref name="delaySeconds"/> to the method with <paramref name="eventName"/> on the target UdonSharpBehaviour. The target method must be public and have five parameters.
+    /// <remarks>The method is allowed to return a value, but the return value will not be accessible via this method.
+    /// Methods with an underscore as their first character will not be callable via SendCustomNetworkEvent, unless they have a [NetworkCallable] attribute..</remarks>
+    /// </summary>
+    /// <param name="scriptInstance">The UdonSharpBehaviour that will have <paramref name="eventName"/> called on it</param>
+    /// <param name="delaySeconds">How long to wait before sending the network event</param>
+    /// <param name="target">Whether to send this event to only the owner of the target behaviour's GameObject, or to everyone in the instance</param>
+    /// <param name="eventName">Name of the method to call</param>
+    [PublicAPI]
+    public void NetworkEventDelayedSeconds(UdonSharpBehaviour scriptInstance, float delaySeconds,
+        NetworkEventTarget target, string eventName,
+        // ReSharper disable InvalidXmlDocComment
+        object parameter0 = null, object parameter1 = null, object parameter2 = null, object parameter3 = null,
+        object parameter4 = null, object parameter5 = null, object parameter6 = null, object parameter7 = null
+        // ReSharper restore InvalidXmlDocComment
+    )
+    {
         object[] parameters = new object[]
         {
-                parameter0, parameter1, parameter2, parameter3,
-                parameter4, parameter5, parameter6, parameter7
+            parameter0, parameter1, parameter2, parameter3,
+            parameter4, parameter5, parameter6, parameter7
         };
-
+        
         DataList eventEntry = new DataList();
         eventEntry.Add(new DataToken(scriptInstance));
         eventEntry.Add(new DataToken(target));
@@ -160,18 +196,22 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
         // Fire immediately if delay is negative or zero
         if (delaySeconds <= 0.0f)
         {
-            managerScript.FireQueuedEvent(eventEntry);
+            FireQueuedEvent(eventEntry);
             return;
         }
 
         // Add firing time to list
-        managerScript.queuedEventsListDelayedSeconds_FiringTimes.Add(Time.timeAsDouble + delaySeconds);
+        _queuedEventSeconds_Times.Add(Time.timeAsDouble + delaySeconds);
 
         // Add event data to list
-        managerScript.queuedEventsListDelayedSeconds_EventData.Add(eventEntry);
-        managerScript.enabled = true;
+        _queuedEventSeconds_Data.Add(eventEntry);
+        enabled = true;
     }
+    
+    #endregion // DELAYED SECONDS API
 
+    #region INTERNAL EVENT HANDLING
+    
     /// <summary>
     /// Every frame we check over the queue (list), this is not especially efficient
     /// We do disable the update loop if there's nothing queued at the very least
@@ -179,42 +219,42 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
     private void Update()
     {
         // Delayed frames events
-        int delayedFramesCount = queuedEventsListDelayedFrames_FiringTimes.Count;
+        int delayedFramesCount = _queuedEventFrames_Times.Count;
         int frameNow = Time.frameCount;
         for (int i = delayedFramesCount - 1; i >= 0; i--)
         {
-            if (frameNow < queuedEventsListDelayedFrames_FiringTimes[i].Int)
+            if (frameNow < _queuedEventFrames_Times[i].Int)
                 continue;
 
-            FireQueuedEvent(queuedEventsListDelayedFrames_EventData[i].DataList);
-
-            queuedEventsListDelayedFrames_FiringTimes.RemoveAt(i);
-            queuedEventsListDelayedFrames_EventData.RemoveAt(i);
+            FireQueuedEvent(_queuedEventFrames_Data[i].DataList);
+            
+            _queuedEventFrames_Times.RemoveAt(i);
+            _queuedEventFrames_Data.RemoveAt(i);
         }
 
         // Delayed seconds events
-        int delayedSecondsCount = queuedEventsListDelayedSeconds_FiringTimes.Count;
+        int delayedSecondsCount = _queuedEventSeconds_Times.Count;
         double timeNow = Time.timeAsDouble;
         for (int i = delayedSecondsCount - 1; i >= 0; i--)
         {
-            if (timeNow < queuedEventsListDelayedSeconds_FiringTimes[i].Double)
+            if (timeNow < _queuedEventSeconds_Times[i].Double)
                 continue;
 
-            FireQueuedEvent(queuedEventsListDelayedSeconds_EventData[i].DataList);
+            FireQueuedEvent(_queuedEventSeconds_Data[i].DataList);
 
-            queuedEventsListDelayedSeconds_FiringTimes.RemoveAt(i);
-            queuedEventsListDelayedSeconds_EventData.RemoveAt(i);
+            _queuedEventSeconds_Times.RemoveAt(i);
+            _queuedEventSeconds_Data.RemoveAt(i);
         }
 
         // Check if we can disable the update loop
-        bool hasRemainingEvents = queuedEventsListDelayedFrames_FiringTimes.Count > 0 || queuedEventsListDelayedSeconds_FiringTimes.Count > 0;
+        bool hasRemainingEvents = _queuedEventFrames_Times.Count > 0 || _queuedEventSeconds_Times.Count > 0;
         if (!hasRemainingEvents)
         {
             this.enabled = false;
         }
     }
 
-    private void FireQueuedEvent(DataList eventData)
+    private static void FireQueuedEvent(DataList eventData)
     {
         int readIndex = 0;
 
@@ -222,12 +262,12 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
         // This could potentially happen in normal use if someone targeted another player's PlayerObject with an event on it
         DataToken scriptInstanceToken = eventData[readIndex];
         if (scriptInstanceToken.TokenType != TokenType.Reference) return; // This probably doesn't happen
-        if (!Utilities.IsValid(eventData[readIndex].Reference)) return; // This happens if it becomes null
+        if (!Utilities.IsValid(scriptInstanceToken.Reference)) return; // This happens if it becomes null
 
-        UdonSharpBehaviour scriptInstance = (UdonSharpBehaviour)eventData[readIndex].Reference;
+        var scriptInstance = (UdonSharpBehaviour)scriptInstanceToken.Reference;
         readIndex++;
 
-        VRC.Udon.Common.Interfaces.NetworkEventTarget target = (VRC.Udon.Common.Interfaces.NetworkEventTarget)eventData[readIndex].Reference;
+        var target = (NetworkEventTarget)eventData[readIndex].Reference;
         readIndex++;
 
         string eventName = eventData[readIndex].String;
@@ -258,5 +298,6 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
             default: scriptInstance.SendCustomNetworkEvent(target, eventName); break;
         }
     }
-
+    
+    #endregion // INTERNAL EVENT HANDLING
 }
