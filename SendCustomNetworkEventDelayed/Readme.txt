@@ -24,9 +24,7 @@ NetworkEventDelayedSeconds_Expensive(
 
 Consider caching the delay manager, prior to a for-loop or to reduce the cost of fetching it across normal calls:
 
-using static SendCustomNetworkEventDelayed_Manager;
-
-TryGetInstance(out SendCustomNetworkEventDelayed_Manager _manager);
+SendCustomNetworkEventDelayed_Manager.TryGetInstance(out var _manager);
 for (int i = 0; i < 100; i++)
 {
   _manager.NetworkEventDelayedFrames(
