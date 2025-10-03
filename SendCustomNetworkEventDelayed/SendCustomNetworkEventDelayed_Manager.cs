@@ -31,9 +31,6 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
 
         if (!gameObject.activeSelf)
             gameObject.SetActive(true);
-
-        if (!gameObject.activeInHierarchy)
-            Debug.LogError("The SendCustomNetworkEventDelayed_Manager script is not active in hierarchy. Please make sure it is.");
     }
 
     #endregion // VALIDATION

@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c333ccfdd0cbdbc4ca30cef2dd6e6b9b, type: 3}
   m_Name: SendCustomNetworkEventDelayed_ExampleUseCase
   m_EditorClassIdentifier: 
-  serializedUdonProgramAsset: {fileID: 11400000, guid: 8fc2bcef778915f49b8f8cce6a07b3f5,
+  serializedUdonProgramAsset: {fileID: 11400000, guid: cc3d3328575dc5b44bd687fa3a57382c,
     type: 2}
   udonAssembly: 
   assemblyError: 
-  sourceCsScript: {fileID: 11500000, guid: 7183b380387d80f4e8b01b7bbccdeeaf, type: 3}
+  sourceCsScript: {fileID: 11500000, guid: e47c064e888bd83489d97b36483afbe0, type: 3}
   scriptVersion: 2
   compiledVersion: 2
   behaviourSyncMode: 4
