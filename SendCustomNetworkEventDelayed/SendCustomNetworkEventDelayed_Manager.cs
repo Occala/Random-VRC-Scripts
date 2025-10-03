@@ -18,7 +18,7 @@ using NetworkEventTarget = VRC.Udon.Common.Interfaces.NetworkEventTarget;
 public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
 {
     #region VALIDATION
-    
+
     /// <summary>
     /// Safety checks in editor
     /// </summary>
@@ -26,16 +26,16 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
     {
         if (this.name != nameof(SendCustomNetworkEventDelayed_Manager))
             this.name = nameof(SendCustomNetworkEventDelayed_Manager);
-        
+
         if (gameObject.activeInHierarchy) return;
-        
+
         if (!gameObject.activeSelf)
             gameObject.SetActive(true);
-        
+
         if (!gameObject.activeInHierarchy)
             Debug.LogError("The SendCustomNetworkEventDelayed_Manager script is not active in hierarchy. Please make sure it is.");
     }
-    
+
     #endregion // VALIDATION
 
     /// <summary>
@@ -45,7 +45,7 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
     public static bool TryGetInstance(out SendCustomNetworkEventDelayed_Manager instance)
     {
         instance = null;
-        
+
         GameObject manager = GameObject.Find(nameof(SendCustomNetworkEventDelayed_Manager));
         if (!Utilities.IsValid(manager))
         {
@@ -55,7 +55,7 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
 
             return false;
         }
-        
+
         instance = manager.GetComponent<SendCustomNetworkEventDelayed_Manager>();
         if (!Utilities.IsValid(instance))
         {
@@ -69,10 +69,10 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
     }
 
     #region DELAYED FRAMES API
-    
+
     private readonly DataList _queuedEventFrames_Times = new DataList();
     private readonly DataList _queuedEventFrames_Data = new DataList();
-    
+
     /// <inheritdoc cref="NetworkEventDelayedFrames(UdonSharpBehaviour, int, NetworkEventTarget, string, object, object, object, object, object, object, object, object)"/>
     [PublicAPI]
     public static void NetworkEventDelayedFrames_Expensive(
@@ -85,9 +85,9 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
         if (!TryGetInstance(out var managerScript)) return;
         managerScript.NetworkEventDelayedFrames(scriptInstance, delayFrames, target, eventName, parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7);
     }
-    
+
     /// <summary>
-    /// Sends a networked call after <paramref name="delayFrames"/> to the method with <paramref name="eventName"/> on the target UdonSharpBehaviour. The target method must be public and have five parameters.
+    /// Sends a networked call after <paramref name="delayFrames"/> to the method with <paramref name="eventName"/> on the target UdonSharpBehaviour. The target method must be public.
     /// <remarks>The method is allowed to return a value, but the return value will not be accessible via this method.
     /// Methods with an underscore as their first character will not be callable via SendCustomNetworkEvent, unless they have a [NetworkCallable] attribute..</remarks>
     /// </summary>
@@ -101,7 +101,7 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
         // ReSharper disable InvalidXmlDocComment
         object parameter0 = null, object parameter1 = null, object parameter2 = null, object parameter3 = null,
         object parameter4 = null, object parameter5 = null, object parameter6 = null, object parameter7 = null
-        // ReSharper restore InvalidXmlDocComment
+    // ReSharper restore InvalidXmlDocComment
     )
     {
         object[] parameters = new object[]
@@ -145,16 +145,18 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
 
         // Add event data to list
         _queuedEventFrames_Data.Add(eventEntry);
-        enabled = true;
+
+        // Starts custom loop if not running
+        _AttemptStartCheckFramesLoop();
     }
-    
+
     #endregion // DELAYED FRAMES API
 
     #region DELAYED SECONDS API
-    
+
     private readonly DataList _queuedEventSeconds_Times = new DataList();
     private readonly DataList _queuedEventSeconds_Data = new DataList();
-    
+
     /// <inheritdoc cref="NetworkEventDelayedSeconds(UdonSharpBehaviour, float, NetworkEventTarget, string, object, object, object, object, object, object, object, object)"/>
     [PublicAPI]
     public static void NetworkEventDelayedSeconds_Expensive(
@@ -167,9 +169,9 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
         if (!TryGetInstance(out var managerScript)) return;
         managerScript.NetworkEventDelayedSeconds(scriptInstance, delaySeconds, target, eventName, parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7);
     }
-    
+
     /// <summary>
-    /// Sends a networked call after <paramref name="delaySeconds"/> to the method with <paramref name="eventName"/> on the target UdonSharpBehaviour. The target method must be public and have five parameters.
+    /// Sends a networked call after <paramref name="delaySeconds"/> to the method with <paramref name="eventName"/> on the target UdonSharpBehaviour. The target method must be public.
     /// <remarks>The method is allowed to return a value, but the return value will not be accessible via this method.
     /// Methods with an underscore as their first character will not be callable via SendCustomNetworkEvent, unless they have a [NetworkCallable] attribute..</remarks>
     /// </summary>
@@ -183,7 +185,7 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
         // ReSharper disable InvalidXmlDocComment
         object parameter0 = null, object parameter1 = null, object parameter2 = null, object parameter3 = null,
         object parameter4 = null, object parameter5 = null, object parameter6 = null, object parameter7 = null
-        // ReSharper restore InvalidXmlDocComment
+    // ReSharper restore InvalidXmlDocComment
     )
     {
         object[] parameters = new object[]
@@ -191,7 +193,7 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
             parameter0, parameter1, parameter2, parameter3,
             parameter4, parameter5, parameter6, parameter7
         };
-        
+
         DataList eventEntry = new DataList();
         eventEntry.Add(new DataToken(scriptInstance));
         eventEntry.Add(new DataToken(target));
@@ -228,20 +230,25 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
 
         // Add event data to list
         _queuedEventSeconds_Data.Add(eventEntry);
-        enabled = true;
+
+        // Starts custom loop if not running
+        _AttemptStartCheckSecondsLoop();
     }
-    
+
     #endregion // DELAYED SECONDS API
 
     #region INTERNAL EVENT HANDLING
-    
-    /// <summary>
-    /// Every frame we check over the queue (list), this is not especially efficient
-    /// We do disable the update loop if there's nothing queued at the very least
-    /// </summary>
-    private void Update()
+
+    private bool _queuedCheckRunning_Frames;
+    public void _AttemptStartCheckFramesLoop()
     {
-        // Delayed frames events
+        if (_queuedCheckRunning_Frames) return;
+
+        _queuedCheckRunning_Frames = true;
+        SendCustomEventDelayedFrames(nameof(_RepeatedCheckFramesEvents), 1);
+    }
+    public void _RepeatedCheckFramesEvents()
+    {
         int delayedFramesCount = _queuedEventFrames_Times.Count;
         int frameNow = Time.frameCount;
         for (int i = delayedFramesCount - 1; i >= 0; i--)
@@ -250,12 +257,31 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
                 continue;
 
             FireQueuedEvent(_queuedEventFrames_Data[i].DataList);
-            
+
             _queuedEventFrames_Times.RemoveAt(i);
             _queuedEventFrames_Data.RemoveAt(i);
         }
 
-        // Delayed seconds events
+        if (_queuedEventFrames_Times.Count > 0)
+        {
+            SendCustomEventDelayedFrames(nameof(_RepeatedCheckFramesEvents), 1);
+        }
+        else
+        {
+            _queuedCheckRunning_Frames = false;
+        }
+    }
+
+    private bool _queuedCheckRunning_Seconds;
+    public void _AttemptStartCheckSecondsLoop()
+    {
+        if (_queuedCheckRunning_Frames) return;
+
+        _queuedCheckRunning_Seconds = true;
+        SendCustomEventDelayedFrames(nameof(_RepeatedCheckSecondsEvents), 1);
+    }
+    public void _RepeatedCheckSecondsEvents()
+    {
         int delayedSecondsCount = _queuedEventSeconds_Times.Count;
         double timeNow = Time.timeAsDouble;
         for (int i = delayedSecondsCount - 1; i >= 0; i--)
@@ -269,11 +295,13 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
             _queuedEventSeconds_Data.RemoveAt(i);
         }
 
-        // Check if we can disable the update loop
-        bool hasRemainingEvents = _queuedEventFrames_Times.Count > 0 || _queuedEventSeconds_Times.Count > 0;
-        if (!hasRemainingEvents)
+        if (_queuedEventSeconds_Times.Count > 0)
         {
-            this.enabled = false;
+            SendCustomEventDelayedFrames(nameof(_RepeatedCheckSecondsEvents), 1);
+        }
+        else
+        {
+            _queuedCheckRunning_Seconds = false;
         }
     }
 
@@ -321,6 +349,7 @@ public class SendCustomNetworkEventDelayed_Manager : UdonSharpBehaviour
             default: scriptInstance.SendCustomNetworkEvent(target, eventName); break;
         }
     }
-    
+
     #endregion // INTERNAL EVENT HANDLING
 }
+
