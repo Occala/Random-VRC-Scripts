@@ -1,4 +1,4 @@
-
+﻿
 // Unsupported in U#
 // ReSharper disable ArrangeObjectCreationWhenTypeEvident
 
